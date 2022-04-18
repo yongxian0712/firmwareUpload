@@ -1,0 +1,38 @@
+.Home .lander {
+    padding: 80px 0;
+    text-align: center;
+  }
+  
+  .Home .lander h1 {
+    font-family: "Open Sans", sans-serif;
+    font-weight: 600;
+  }
+
+  .Home .dashboard {
+    text-align: left;
+  }
+
+  .Home .dashboardList {
+    text-align: left;
+  }
+
+  .Home .accordion {
+    padding-bottom: 20px;
+  }
+
+  .Home .form {
+    font-weight: bold;
+    color:rgb(64, 54, 126);
+  }
+
+  .Home .attachment {
+    padding-bottom: 12px;
+    padding-left: 12px;
+    color: #000;
+  }
+
+  .Home .checkbox {
+    padding-left: 12px;
+    color: #000;
+  }
+

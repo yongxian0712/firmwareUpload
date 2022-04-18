@@ -1,0 +1,18 @@
+
+    .Signup {
+      padding: 60px 0;
+    }
+  
+    .Signup form {
+      margin: 0 auto;
+      max-width: 320px;
+      text-align: left;
+      font-weight: bold;
+    }
+
+    .Signup form a {
+      margin: 0 auto;
+      max-width: 320px;
+      text-align: left;
+    }
+
