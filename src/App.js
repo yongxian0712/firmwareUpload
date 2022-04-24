@@ -4,6 +4,7 @@ import "./App.css";
 import Routes from "./Routes";
 import { LinkContainer } from "react-router-bootstrap";
 import { AppContext } from "./lib/contextLib";
+import { adminContext } from "./lib/adminContext";
 import { Auth } from "aws-amplify";
 import { useHistory } from "react-router-dom";
 import { onError } from "./lib/errorLib";
@@ -11,40 +12,33 @@ import { onError } from "./lib/errorLib";
 function App() {
 
 const [isAuthenticated, userHasAuthenticated] = useState(false);
-const [isAdmin, setIsAdmin] = useState(false);
 const [isAuthenticating, setIsAuthenticating] = useState(true);
 const history = useHistory();
 
-console.log(isAdmin)
+const [isAdmin, LoginAsAdmin] = useState(false);
 
 useEffect(() => {
   onLoad();
 }, []);
 
-async function onLoad() {
-  try {
-    await Auth.currentSession();
-    await Auth.currentAuthenticatedUser()
-    .then(data => (
-       (console.log(data.signInUserSession.accessToken.payload["cognito:groups"])))
-    )
-    .catch(err => console.log(err));
-      
-    userHasAuthenticated(true);
-  }
-  catch(e) {
-    if (e !== 'No current user') {
-      onError(e);
+  async function onLoad() {
+    try {
+      await Auth.currentSession();
+      userHasAuthenticated(true);
+      LoginAsAdmin(true);
     }
-  }
-
-  setIsAuthenticating(false);
+    catch(e) {
+      if (e !== 'No current user') {
+        onError(e);
+      }
+    }
+    setIsAuthenticating(false);
   }
 
   async function handleLogout() {
     await Auth.signOut();
-  
     userHasAuthenticated(false);
+    LoginAsAdmin(false);
     history.push("/login");
   }
 
@@ -64,6 +58,7 @@ async function onLoad() {
   return (
     !isAuthenticating && (
       <div className="App container py-3">
+       
         <Navbar collapseOnSelect bg="light" expand="md" className="mb-3">
           <LinkContainer to="/">
             <Navbar.Brand className="font-weight-bold text-muted">
@@ -73,13 +68,15 @@ async function onLoad() {
           <Navbar.Toggle />
           <Navbar.Collapse className="justify-content-end">
             <Nav activeKey={window.location.pathname}>
+              
               {isAuthenticated ? (
                 <>
+
                 {isAdmin ? (
                   <>
                   <NavDropdown title="Admin Management" id="basic-nav-dropdown">
-                    <NavDropdown.Item href="/admin/thingManagement">
-                      IoT Thing Management
+                    <NavDropdown.Item href="/admin/IoTManagement">
+                      IoT Management
                     </NavDropdown.Item>
                   </NavDropdown>
                   {NonAdminControl()}
@@ -89,6 +86,7 @@ async function onLoad() {
                   {NonAdminControl()}
                   </>
                   )}
+
                 </>
               ) : (
                 <>
@@ -100,13 +98,19 @@ async function onLoad() {
                   </LinkContainer>
                 </>
               )}
+
             </Nav>
           </Navbar.Collapse>
-        </Navbar>
-        <AppContext.Provider value={{ isAuthenticated, userHasAuthenticated }}>
-          <Routes />
+        </Navbar> 
+       
+        <AppContext.Provider value={{ isAuthenticated, userHasAuthenticated }}>  
+        <adminContext.Provider value={{isAdmin, LoginAsAdmin}}>
+          <Routes />  
+        </adminContext.Provider>    
         </AppContext.Provider>
+      
       </div>
+
     )
   );
 }

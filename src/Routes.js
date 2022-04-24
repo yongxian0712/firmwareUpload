@@ -9,6 +9,8 @@ import ChangePassword from "./containers/ChangePassword";
 import AuthenticatedRoute from "./components/AuthenticatedRoute";
 import UnauthenticatedRoute from "./components/UnauthenticatedRoute";
 import NotAuthenticatedUser from "./containers/NotAuthenticatedUser";
+import IoTManagement from "./containers/IoTManagement";
+import AdminRoute from "./components/AdminRoute";
 export default function Routes() {
   return (
     <Switch>
@@ -31,6 +33,10 @@ export default function Routes() {
         <AuthenticatedRoute exact path="/settings/password">
             <ChangePassword />
         </AuthenticatedRoute>
+
+        <AdminRoute exact path="/admin/IoTManagement">
+            <IoTManagement />
+        </AdminRoute>
 
         <UnauthenticatedRoute exact path="/login/reset">
             <ResetPassword />

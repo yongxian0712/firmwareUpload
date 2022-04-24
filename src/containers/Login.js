@@ -4,6 +4,7 @@ import {Form, InputGroup, Alert} from "react-bootstrap";
 import { useHistory } from "react-router-dom";
 import LoaderButton from "../components/LoaderButton";
 import { useAppContext } from "../lib/contextLib";
+import { useAdminContext } from "../lib/adminContext";
 import { useFormFields } from "../lib/hooksLib";
 import { onError } from "../lib/errorLib";
 import { Link } from "react-router-dom";
@@ -13,6 +14,7 @@ export default function Login() {
   const allowedEmailAlias = "@daikin.com.my";
   const history = useHistory();
   const { userHasAuthenticated } = useAppContext();
+  const { LoginAsAdmin } = useAdminContext();
   const [isLoading, setIsLoading] = useState(false);
   const [fields, handleFieldChange] = useFormFields({
     email: "",
@@ -40,9 +42,13 @@ export default function Login() {
 
     try {
       await Auth.signIn((fields.email+allowedEmailAlias), fields.password);
+      LoginAsAdmin(false);
 
       (async () => {
         if(await checkGroup()){
+          if(userGroup === "Admin"){
+            LoginAsAdmin(true);
+          }else(LoginAsAdmin(false))
           setIsLogin(true);
           userHasAuthenticated(true);
           history.push("/");
