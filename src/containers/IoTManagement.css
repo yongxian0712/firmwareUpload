@@ -1,0 +1,11 @@
+
+.IoTManagement {
+    padding: 60px 0;
+}
+
+.IoTManagement form {
+    margin: 0 auto;
+    max-width: 320px;
+    text-align: left;
+    font-weight: bold;
+}
