@@ -36,3 +36,18 @@
     color: #000;
   }
 
+  .deleteButtonContainer {
+    align-content: center;
+    width: 30px;
+  }
+
+  .delete-button{
+    color:rgb(64, 54, 126);
+  }
+
+  .delete-button .icon {
+    /* ensure svg will never be the target of mouse event */
+    pointer-events: none;
+  }
+
+

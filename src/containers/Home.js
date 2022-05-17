@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useHistory } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { s3Upload } from "../lib/awsLib";
 import { useFormFields } from "../lib/hooksLib";
-import ListGroup from "react-bootstrap/ListGroup";
 import { useAppContext } from "../lib/contextLib";
 import { onError } from "../lib/errorLib";
 import { API } from "aws-amplify";
 import "./Home.css";
-import { Accordion, Card, Button, Table, Form, Col, Alert } from "react-bootstrap";
+import { Accordion, Card, Button, Table, Form, Col, Alert, Modal, ListGroup } from "react-bootstrap";
 import { Tab, Tabs } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 import _ from 'lodash';
@@ -14,15 +13,32 @@ import LoaderButton from "../components/LoaderButton";
 import Attachment from "./Attachment";
 import { TabList } from "react-tabs";
 import { TabPanel } from "react-tabs";
+import { useAdminContext } from "../lib/adminContext";
+import {MdDelete} from "react-icons/md"
 
+import config from "../config";
 export default function Home() {
 
   const [dashboard, setDashboard] = useState([]);
+
   const { isAuthenticated } = useAppContext();
   const [isLoading, setIsLoading] = useState(true);
+  const {isAdmin} = useAdminContext();
 
-  const groupedThing = _.groupBy(dashboard, 'ThingType');
-  const groupedManu = _.groupBy(dashboard, 'Manufacturer');
+  const [showModal, setShowModal] = useState(false);
+
+  const handleCloseModal = () => setShowModal(false);
+
+  const [deleteStateManu, setDeleteStateManu] = useState();
+  const [deleteStateThing, setDeleteStateThing] = useState();
+  const [deleteStateFile, setDeleteStateFile] = useState();
+
+  const handleShowModal = (event) => {
+    setDeleteStateManu(event.target.getAttribute("data-delete-manu"));
+    setDeleteStateThing(event.target.getAttribute("data-delete-thing"));
+    setDeleteStateFile(event.target.getAttribute("data-delete-file"))
+    setShowModal(true);
+  }    
   
   const [isUploaded, setUploaded] = useState(false);
 
@@ -31,16 +47,15 @@ export default function Home() {
   });
 
   const [ThingType, setThingType] = useState();
-  useEffect(() => {
-  }, [ThingType]);
+  const [Manufacturer, setManufacturer] = useState();  
+  
+  const groupedThing = _.groupBy(dashboard, 'ThingType');
+  const groupedManu = _.groupBy(groupedThing[ThingType], 'Manufacturer');
 
   function handleThingType(event){
     setThingType(event.target.value);
-  }
-
-  const [Manufacturer, setManufacturer] = useState();
-  useEffect(() => {
-  }, [Manufacturer]);
+    setManufacturer(Object.keys(_.groupBy(groupedThing[event.target.value], 'Manufacturer'))[0]);
+  }  
 
   function handleManufacturer(event){
     setManufacturer(event.target.value)
@@ -51,12 +66,12 @@ export default function Home() {
       if (!isAuthenticated) {
         return;
       }
-  
       try {
         const db = await loadDashboard();
         setDashboard(db);
-        setThingType(Object.keys(_.groupBy(db, "ThingType"))[0]); // set initial value for Form.select
-        setManufacturer(Object.keys(_.groupBy(db, "Manufacturer"))[0]); //set initial value for Form.select
+        const grp = _.groupBy(db, "ThingType");
+        setThingType(Object.keys(grp)[0]); // set initial value for Form.select
+        setManufacturer(Object.keys(_.groupBy(grp[Object.keys(grp)[0]], 'Manufacturer'))[0]); //set initial value for Form.select
       } catch (e) {
         onError(e);
       }
@@ -65,40 +80,63 @@ export default function Home() {
     }
   
     onLoad();
+    
   }, [isAuthenticated]);
 
   function loadDashboard() {
     return API.get("Firmware_CRUD", "/dashboard");
   }
 
+  async function handleDelete(event){
+    const svr = event.target.getAttribute('data-delete-server')
+    const thing = deleteStateThing;
+    const manu = deleteStateManu
+    try{
+      await deleteItem({thing, manu, svr});
+      refreshPage();
+    }
+    catch (e) {
+      onError(e);
+      setIsLoading(false);
+    }
+  }
+
+  function deleteItem(form){
+    return API.put("Firmware_CRUD", "/delete", {
+      body: form
+    })
+  }
+
   const server = ["Development", "Staging", "DAMA", "DSP", "International"];
 
   function renderDashboardList() {
-
     return (
       <div className="dashboardList">
         <Tabs>
           <TabList>
-            {server.map((svr) => (
-            <Tab>{svr}</Tab>
+            {server.map((svr, idx) => (
+            <Tab key={idx}>{svr}</Tab>
             ))}
           </TabList>
           
       {server.map((svr) => (
         <TabPanel> 
-        {Object.entries(_.groupBy(dashboard, 'ThingType')).map(([key, value], idx) => (  
-        <Accordion className="accordion">
-          <Card key={idx}>
+        {Object.entries(_.groupBy(dashboard, 'ThingType')).map(([key, value], idx) => (
+          !value.every(
+            function hide(element){
+              return !element['hasFile'+svr] //check if all data is visible, hide that ThingType if there is nothing to show
+          }) ?
+        <Accordion className="accordion" key={idx}>
+          <Card key={idx}>        
             <Card.Header>
               <Accordion.Toggle as={Button} variant="link" eventKey="0">
                 {key}
               </Accordion.Toggle>
             </Card.Header> 
             <Accordion.Collapse eventKey="0">
-              <Card.Body> 
-                         
-                <Table responsive className="table" bordered={true} > 
-                    <thead>
+              <Card.Body>    
+                <Table responsive className="table" bordered={true}> 
+                   <thead>
                       <tr>
                         <th>Manufacturer</th>
                         <th>{`File_Name_${svr}`}</th>
@@ -108,23 +146,41 @@ export default function Home() {
                     {value.map((item, idx) =>(
                     <tbody key={idx}>
                       <tr>
-                        {Object.values(_.pick(value[idx], "Manufacturer", `File_Name_${svr}`, `Latest_Version_${svr}`)).map((body, idx)=>(
-                        ((item['hasFile'+svr])) ?
-                        <td key={idx}>
-                          {body}
-                        </td>
-                        : console.log()
-                      ))}  
+                        {Object.values(_.pick(item, "Manufacturer", `File_Name_${svr}`, `Latest_Version_${svr}`)).map((body, idx)=>(
+                        (item['hasFile'+svr]) ? 
+                          <td className="align-middle" key={idx}>
+                            {body} 
+                          </td>
+                        : 
+                        <></>
+                      ))}
+                      {isAdmin ? 
+                        (item['hasFile'+svr]) ?
+                          <td className="deleteButtonContainer"><Button data-delete-manu={item['Manufacturer']} data-delete-thing={item['ThingType']} data-delete-file={item['File_Name_'+svr]}className="delete-button" variant="link"  style={{alignContent: "center"}} type="button" onClick={handleShowModal}><MdDelete className="icon"/></Button>
+                              <Modal centered show={showModal} onHide={handleCloseModal}>
+                              <Modal.Header closeButton>
+                                <Modal.Title>Notification</Modal.Title>
+                              </Modal.Header>
+                              <Modal.Body>
+                                Are you sure you want to delete <strong>{deleteStateFile}</strong> in <strong>{svr}</strong> server?
+                              </Modal.Body>
+                              <Modal.Footer>
+                                <Button variant="primary" onClick={handleCloseModal}>No</Button>
+                                <Button variant="danger" data-delete-server={svr} onClick={handleDelete}>Yes, Proceed</Button>
+                                </Modal.Footer>
+                              </Modal>                          
+                          </td>
+                          : <></> 
+                        : <></> }
                       </tr>
+
                     </tbody>
                     ))}
-                </Table>  
-                
+                </Table>
               </Card.Body>       
             </Accordion.Collapse>
-          
           </Card> 
-        </Accordion> 
+        </Accordion> : <></>
         ))} 
         
         </TabPanel>
@@ -139,16 +195,28 @@ export default function Home() {
     return fields.version.length > 0;
   }
 
-  function handleSubmit(event) {
+  const [files, setFiles] = useState([]);
+  useEffect(() => {
+  }, [files]);
+
+  function handleFile(event){
+    setFiles({...files, [event.target.id]: event.target.files[0]});
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
+
     setIsLoading(true);
-  
+
     try {
       let ver = fields.version;
       let serverName = Object.keys(files); 
-      serverName.map((svr, idx) => {
+      serverName.map(async(svr, idx) => {
         let fileName = Object.values(files)[idx].name;
-        return uploadFirmware({svr, ThingType, Manufacturer, ver, fileName})   
+        config.s3.BUCKET = "uploadFirmware." + svr
+        console.log(config.s3.BUCKET);
+        const attachment = Object.values(files)[idx] ? await s3Upload(Object.values(files)[idx]) : null;
+        return uploadFirmware({svr, ThingType, Manufacturer, ver, fileName});   
       })
       setUploaded(true);
     } catch (e) {
@@ -163,14 +231,6 @@ export default function Home() {
       body: form
     });
   }
-
-  const [files, setFiles] = useState([]);
-  useEffect(() => {
-  }, [files]);
-
-  function handleFile(event){
-    setFiles({...files, [event.target.id]: event.target.files[0]});
-  } 
 
   function renderForm(){
     return (

@@ -23,7 +23,14 @@ Amplify.configure({
         region: config.apiGateway.REGION
       },
     ]
-  }
+  },
+  Storage: {
+    AWSS3: {
+        bucket: config.s3.BUCKET, //REQUIRED -  Amazon S3 bucket name
+        region: config.s3.REGION, //OPTIONAL -  Amazon service region
+        identityPoolId: config.cognito.IDENTITY_POOL_ID,
+    }
+}
 });
 
 ReactDOM.render(

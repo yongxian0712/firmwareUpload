@@ -1,5 +1,13 @@
 .App {
-  text-align: center;
+  text-align: left;
+}
+
+.App .profilePic{
+  color: #6c757d;
+}
+
+.App .profile {
+  vertical-align: middle;
 }
 
 .App-logo {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Accordion, Card, Button, Table, Form, Col } from "react-bootstrap";
+import React, { useState } from "react";
+import { Card, Form } from "react-bootstrap";
 
 const Attachment = ({handleFileChange}) => {
 

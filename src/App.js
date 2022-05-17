@@ -8,24 +8,35 @@ import { adminContext } from "./lib/adminContext";
 import { Auth } from "aws-amplify";
 import { useHistory } from "react-router-dom";
 import { onError } from "./lib/errorLib";
+import {GrUser, GrUserAdmin} from "react-icons/gr"
 
 function App() {
 
 const [isAuthenticated, userHasAuthenticated] = useState(false);
 const [isAuthenticating, setIsAuthenticating] = useState(true);
 const history = useHistory();
-
+const [name, setName] = useState();
 const [isAdmin, LoginAsAdmin] = useState(false);
 
 useEffect(() => {
   onLoad();
 }, []);
 
+console.log(isAdmin)
+
   async function onLoad() {
     try {
       await Auth.currentSession();
+      const user = await Auth.currentAuthenticatedUser();
       userHasAuthenticated(true);
-      LoginAsAdmin(true);
+      setName(user.attributes.preferred_username);
+      const usergroup = user.signInUserSession.accessToken.payload["cognito:groups"]
+      if(usergroup.includes("Admin")){
+        LoginAsAdmin(true);
+      }
+      else{
+        LoginAsAdmin(false);
+      }
     }
     catch(e) {
       if (e !== 'No current user') {
@@ -61,9 +72,15 @@ useEffect(() => {
        
         <Navbar collapseOnSelect bg="light" expand="md" className="mb-3">
           <LinkContainer to="/">
+            {!isAuthenticated ? (
             <Navbar.Brand className="font-weight-bold text-muted">
               Daikin Research and Development
             </Navbar.Brand>
+            ):(
+            <Navbar.Brand className="font-weight-bold text-muted">
+              {!isAdmin ? <GrUser className="profilePic"/> : <GrUserAdmin className="profilePic"/>} <span className="profile">Welcome, {name}</span>
+            </Navbar.Brand>
+            )}
           </LinkContainer>
           <Navbar.Toggle />
           <Navbar.Collapse className="justify-content-end">
@@ -86,7 +103,7 @@ useEffect(() => {
                   {NonAdminControl()}
                   </>
                   )}
-
+                 
                 </>
               ) : (
                 <>
